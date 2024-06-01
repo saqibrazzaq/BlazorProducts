@@ -1,0 +1,63 @@
+﻿@page "/categories"
+@rendermode InteractiveServer
+@inject ICategoryService CategoryService
+@inject IDialogService DialogService
+@inject IToastService ToastService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Categories</PageTitle>
+
+<h1>Categories</h1>
+
+<FluentAnchor Href="/categories/new" Appearance="Appearance.Accent">Add New Category</FluentAnchor>
+
+<FluentDataGrid @ref="dataGrid" ItemsProvider="itemsProvider" Pagination="@pagination">
+  <PropertyColumn Title="Name" Property="@(p => p.name)" Sortable="true" />
+  <PropertyColumn Title="Full Name Path" Property="@(p => p.fullNamePath)" Sortable="true" />
+  <TemplateColumn Title="Actions" Align="@Align.End">
+    <FluentAnchor Href=@($"/categories/{context.id}/edit")>
+      <FluentIcon Value="@(new Icons.Regular.Size16.Edit())" />
+    </FluentAnchor>
+    <FluentButton IconEnd="@(new Icons.Regular.Size16.Delete())" OnClick="@((async) => DeleteCategory(context))" Appearance="Appearance.Outline" />
+  </TemplateColumn>
+</FluentDataGrid>
+
+<FluentPaginator State="@pagination" />
+
+@code {
+  GridItemsProvider<Category>? itemsProvider;
+  FluentDataGrid<Category> dataGrid;
+
+  PaginationState pagination = new PaginationState { ItemsPerPage = Constants.PageSize };
+
+  protected override void OnInitialized()
+  {
+    InitGridItemsProvider();
+
+  }
+  void InitGridItemsProvider()
+  {
+    itemsProvider = async req =>
+    {
+      CategorySearchReq dto = new();
+      dto.Skip = req.StartIndex;
+      dto.Take = req.Count ?? Constants.PageSize;
+      dto.SortOrder = req.SortByAscending ? Constants.Ascending : Constants.Descending;
+      dto.OrderBy = req.SortByColumn?.Title;
+      var res = CategoryService.Search(dto);
+      return GridItemsProviderResult.From(res.Items, res.Count);
+    };
+  }
+  async Task DeleteCategory(Category context)
+  {
+    Console.WriteLine("Delete " + context.name);
+    var dialog = await DialogService.ShowConfirmationAsync($"Do you want to DELETE {context.name}?", "YES, I WANT TO DELETE", "No", "Delete Category");
+    var result = await dialog.Result;
+    if (!result.Cancelled)
+    {
+      await CategoryService.DeleteAsync(context);
+      ToastService.ShowSuccess("Category deleted");
+      await dataGrid.RefreshDataAsync();
+    }
+  }
+}
