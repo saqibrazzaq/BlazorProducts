@@ -1,0 +1,106 @@
+﻿@page "/products/new"
+@page "/products/{ProductId}/edit"
+@rendermode InteractiveServer
+@inject ICategoryService CategoryService
+@inject IProductService ProductService
+@inject IToastService ToastService
+@inject NavigationManager NavigationManager
+
+<PageTitle>@(string.IsNullOrEmpty(ProductId) ? "Add New" : "Edit") Product</PageTitle>
+
+<h1>@(string.IsNullOrEmpty(ProductId) ? "Add New" : "Edit") Product</h1>
+
+<EditForm Model="@product" OnValidSubmit="@HandleValidSubmit" novalidate>
+  <DataAnnotationsValidator />
+  <FluentValidationSummary />
+
+  <FluentStack Orientation="Orientation.Vertical">
+    <div>
+      <FluentTextArea Cols="60" @bind-Value="product.name" Label="Name" Required />
+      <FluentValidationMessage For="@(() => product.name)" />
+    </div>
+    <div>
+      <FluentAutocomplete TOption="Category"
+                          AutoComplete="off"
+                          Width="100%"
+                          Label="Category"
+                          Placeholder="Select category"
+                          OnOptionsSearch="@OnCategorySearchAsync"
+                          OptionText="@(x => x.fullNamePath)"
+                          OptionSelected="@(x => x.name == product.categoryFullNamePath)"
+                          @bind-SelectedOptions="@SelectedCategories"
+                          MaximumSelectedOptions="1" />
+    </div>
+    <div>
+        <FluentNumberField @bind-Value="product.price" Label="Price" />
+    </div>
+    <div>
+        <FluentTextArea Cols="60" @bind-Value="product.description" Label="Description" />
+    </div>
+    <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">Submit</FluentButton>
+  </FluentStack>
+</EditForm>
+
+@code {
+  [Parameter]
+  public string? ProductId { get; set; }
+  [SupplyParameterFromForm]
+  private Product? product { get; set; } = new();
+
+  IEnumerable<Category> SelectedCategories = Array.Empty<Category>();
+
+  protected override void OnInitialized()
+  {
+    LoadProduct();
+  }
+  void LoadProduct()
+  {
+    if (ProductId is null) return;
+
+    product = ProductService.Get(ProductId);
+
+    // Load dropdown
+    CategorySearchReq dtoCategory = new();
+    dtoCategory.Id = string.IsNullOrEmpty(product.categoryId) ? "unknown" : product.categoryId;
+    SelectedCategories = CategoryService.Search(dtoCategory).Items;
+  }
+  private async Task OnCategorySearchAsync(OptionsSearchEventArgs<Category> e)
+  {
+    CategorySearchReq dto = new();
+    dto.FullNamePath = e.Text;
+    e.Items = CategoryService.Search(dto).Items;
+  }
+  private void SetFullName()
+  {
+    if (product is null) return;
+
+    if (SelectedCategories.Count() == 0)
+    {
+      product.categoryId = "";
+      product.categoryFullNamePath = $"";
+    }
+    else
+    {
+      var selectedCategory = SelectedCategories.FirstOrDefault();
+      if (selectedCategory is not null)
+      {
+        product.categoryId = selectedCategory.id;
+        product.categoryFullNamePath = $"{selectedCategory.fullNamePath}";
+      }
+    }
+  }
+  private async Task HandleValidSubmit()
+  {
+    SetFullName();
+    if (string.IsNullOrEmpty(ProductId))
+    {
+      var newItem = await ProductService.AddAsync(product);
+    }
+    else
+    {
+      await ProductService.UpdateAsync(product);
+    }
+    ToastService.ShowSuccess("Product updated.");
+    NavigationManager.NavigateTo("/products");
+  }
+}

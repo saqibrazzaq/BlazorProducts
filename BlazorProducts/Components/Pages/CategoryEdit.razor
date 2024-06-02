@@ -1,0 +1,101 @@
+﻿@page "/categories/new"
+@page "/categories/{CategoryId}/edit"
+@rendermode InteractiveServer
+@inject ICategoryService CategoryService
+@inject IToastService ToastService
+@inject NavigationManager NavigationManager
+
+<PageTitle>@(string.IsNullOrEmpty(CategoryID) ? "Add New" : "Edit") Category</PageTitle>
+
+<h1>@(string.IsNullOrEmpty(CategoryID) ? "Add New" : "Edit") Category</h1>
+
+<EditForm Model="@category" OnValidSubmit="@HandleValidSubmit" novalidate>
+  <DataAnnotationsValidator />
+  <FluentValidationSummary />
+
+  <FluentStack Orientation="Orientation.Vertical">
+    <div>
+      <FluentTextField Width="350px" @bind-Value="category.name" Label="Name" Required />
+      <FluentValidationMessage For="@(() => category.name)" />
+    </div>
+    <div>
+      <FluentAutocomplete TOption="Category"
+                          AutoComplete="off"
+                          Width="100%"
+                          Label="Category"
+                          Placeholder="Select category"
+                          OnOptionsSearch="@OnCategorySearchAsync"
+                          OptionText="@(x => x.fullNamePath)"
+                          OptionSelected="@(x => x.name == category.fullNamePath)"
+                          @bind-SelectedOptions="@SelectedCategories"
+                          MaximumSelectedOptions="1" />
+    </div>
+    <FluentButton Type="ButtonType.Submit" Appearance="Appearance.Accent">Submit</FluentButton>
+  </FluentStack>
+</EditForm>
+
+@code {
+  [Parameter]
+  public string? CategoryID { get; set; }
+  [SupplyParameterFromForm]
+  private Category? category { get; set; } = new();
+
+  IEnumerable<Category> SelectedCategories = Array.Empty<Category>();
+
+  protected override void OnInitialized()
+  {
+    LoadCategory();
+  }
+  void LoadCategory()
+  {
+    if (CategoryID is null) return;
+
+    category = CategoryService.Get(CategoryID);
+
+    // Load dropdown
+    CategorySearchReq dtoCategory = new();
+    dtoCategory.Id = string.IsNullOrEmpty(category.parentId) ? "unknown" : category.parentId;
+    SelectedCategories = CategoryService.Search(dtoCategory).Items;
+  }
+  private async Task OnCategorySearchAsync(OptionsSearchEventArgs<Category> e)
+  {
+    CategorySearchReq dto = new();
+    dto.FullNamePath = e.Text;
+    e.Items = CategoryService.Search(dto).Items;
+  }
+  private void SetFullName()
+  {
+    if (category is null) return;
+
+    if (SelectedCategories.Count() == 0)
+    {
+      category.parentId = "";
+      category.fullIdPath = $"{category.id}";
+      category.fullNamePath = $"{category.name}";
+    }
+    else
+    {
+      var selectedCategory = SelectedCategories.FirstOrDefault();
+      if (selectedCategory is not null)
+      {
+        category.parentId = selectedCategory.id;
+        category.fullIdPath = $"{selectedCategory.fullIdPath}/{category.id}";
+        category.fullNamePath = $"{selectedCategory.fullNamePath} -> {category.name}";
+      }
+    }
+  }
+  private async Task HandleValidSubmit()
+  {
+    SetFullName();
+    if (string.IsNullOrEmpty(CategoryID))
+    {
+      var newItem = await CategoryService.AddAsync(category);
+    }
+    else
+    {
+      await CategoryService.UpdateAsync(category);
+    }
+    ToastService.ShowSuccess("Category updated.");
+    NavigationManager.NavigateTo("/categories");
+  }
+}

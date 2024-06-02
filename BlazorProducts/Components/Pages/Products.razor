@@ -1,44 +1,46 @@
-﻿@page "/categories"
+﻿@page "/products"
 @rendermode InteractiveServer
 @inject ICategoryService CategoryService
+@inject IProductService ProductService
 @inject IDialogService DialogService
 @inject IToastService ToastService
 @inject NavigationManager NavigationManager
 
-<PageTitle>Categories</PageTitle>
+<PageTitle>Products</PageTitle>
 
-<h1>Categories</h1>
+<h1>Products</h1>
 
-<FluentAnchor Href="/categories/new" Appearance="Appearance.Accent">Add New Category</FluentAnchor>
+<FluentAnchor Href="/products/new" Appearance="Appearance.Accent">Add New Product</FluentAnchor>
 
 <FluentDataGrid @ref="dataGrid" ItemsProvider="itemsProvider" Pagination="@pagination">
-  <PropertyColumn Title="Name" Property="@(p => p.name)" Sortable="true">
+  <PropertyColumn Title="Name" Property="@(p => p.name)" Sortable="true" Class="multiline-text">
     <ColumnOptions>
       <label>
-        <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Category Name..." @onchange="FilterChangedAsync" />
+        <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Product Name..." @onchange="FilterChangedAsync" />
       </label>
     </ColumnOptions>
   </PropertyColumn>
-  <PropertyColumn Title="Full Name Path" Property="@(p => p.fullNamePath)" Sortable="true" Class="multiline-text">
+  <PropertyColumn Width="250px" Title="Category Full Name Path" Property="@(p => p.categoryFullNamePath)" Sortable="true" Class="multiline-text">
     <ColumnOptions>
       <label>
         <input type="search" autofocus @bind="fullNamePathFilter" @bind:event="oninput" placeholder="Full Category Name..." @onchange="FilterChangedAsync" />
       </label>
     </ColumnOptions>
   </PropertyColumn>
+  <PropertyColumn Title="Price" Property="@(p => p.price)" Format="C0" />
   <TemplateColumn Title="Actions" Align="@Align.End">
-    <FluentAnchor Href=@($"/categories/{context.id}/edit")>
+    <FluentAnchor Href=@($"/products/{context.id}/edit")>
       <FluentIcon Value="@(new Icons.Regular.Size16.Edit())" />
     </FluentAnchor>
-    <FluentButton IconEnd="@(new Icons.Regular.Size16.Delete())" OnClick="@((async) => DeleteCategory(context))" Appearance="Appearance.Outline" />
+    <FluentButton IconEnd="@(new Icons.Regular.Size16.Delete())" OnClick="@((async) => DeleteProduct(context))" Appearance="Appearance.Outline" />
   </TemplateColumn>
 </FluentDataGrid>
 
 <FluentPaginator State="@pagination" />
 
 @code {
-  GridItemsProvider<Category>? itemsProvider;
-  FluentDataGrid<Category> dataGrid;
+  GridItemsProvider<Product>? itemsProvider;
+  FluentDataGrid<Product> dataGrid;
   string nameFilter = string.Empty;
   string fullNamePathFilter = string.Empty;
 
@@ -53,27 +55,27 @@
   {
     itemsProvider = async req =>
     {
-      CategorySearchReq dto = new();
+      ProductSearchReq dto = new();
       dto.Name = nameFilter;
-      dto.FullNamePath = fullNamePathFilter;
+      dto.CategoryFullNamePath = fullNamePathFilter;
       dto.Skip = req.StartIndex;
       dto.Take = req.Count ?? Constants.PageSize;
       dto.SortOrder = req.SortByAscending ? Constants.Ascending : Constants.Descending;
       dto.OrderBy = req.SortByColumn?.Title?.Replace(" ", "");
-      var res = CategoryService.Search(dto);
+      var res = ProductService.Search(dto);
       return GridItemsProviderResult.From(res.Items, res.Count);
     };
   }
   Task FilterChangedAsync() => dataGrid!.RefreshDataAsync();
-  async Task DeleteCategory(Category context)
+  async Task DeleteProduct(Product context)
   {
     Console.WriteLine("Delete " + context.name);
-    var dialog = await DialogService.ShowConfirmationAsync($"Do you want to DELETE {context.name}?", "YES, I WANT TO DELETE", "No", "Delete Category");
+    var dialog = await DialogService.ShowConfirmationAsync($"Do you want to DELETE {context.name}?", "YES, I WANT TO DELETE", "No", "Delete Product");
     var result = await dialog.Result;
     if (!result.Cancelled)
     {
-      await CategoryService.DeleteAsync(context);
-      ToastService.ShowSuccess("Category deleted");
+      await ProductService.DeleteAsync(context);
+      ToastService.ShowSuccess("Product deleted");
       await dataGrid.RefreshDataAsync();
     }
   }

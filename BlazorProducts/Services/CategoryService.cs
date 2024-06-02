@@ -81,19 +81,23 @@ namespace BlazorProducts.Services
         var count = queryable.Count();
 
         // Sort
-        if (dto.OrderBy == "name" && dto.SortOrder == Constants.Ascending)
-        {
-          queryable = queryable.OrderBy(x => x.name);
-        }
-        else if (dto.OrderBy == "name" && dto.SortOrder == Constants.Descending)
-        {
-          queryable = queryable.OrderByDescending(x => x.name);
-        }
-        else if (dto.OrderBy == "fullNamePath" && dto.SortOrder == Constants.Ascending)
+        if (string.IsNullOrEmpty(dto.OrderBy))
         {
           queryable = queryable.OrderBy(x => x.fullNamePath);
         }
-        else if (dto.OrderBy == "fullNamePath" && dto.SortOrder == Constants.Descending)
+        else if (dto.OrderBy.Equals("name", StringComparison.OrdinalIgnoreCase) && dto.SortOrder == Constants.Ascending)
+        {
+          queryable = queryable.OrderBy(x => x.name);
+        }
+        else if (dto.OrderBy.Equals("name", StringComparison.OrdinalIgnoreCase) && dto.SortOrder == Constants.Descending)
+        {
+          queryable = queryable.OrderByDescending(x => x.name);
+        }
+        else if (dto.OrderBy.Equals("fullNamePath", StringComparison.OrdinalIgnoreCase) && dto.SortOrder == Constants.Ascending)
+        {
+          queryable = queryable.OrderBy(x => x.fullNamePath);
+        }
+        else if (dto.OrderBy.Equals("fullNamePath", StringComparison.OrdinalIgnoreCase) && dto.SortOrder == Constants.Descending)
         {
           queryable = queryable.OrderByDescending(x => x.fullNamePath);
         }

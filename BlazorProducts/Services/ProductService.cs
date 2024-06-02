@@ -75,6 +75,32 @@ namespace BlazorProducts.Services
         // Count before paging
         var count = queryable.Count();
 
+        // Sort
+        if (string.IsNullOrEmpty(dto.OrderBy))
+        {
+          queryable = queryable.OrderBy(x => x.categoryFullNamePath);
+        }
+        else if (dto.OrderBy.Equals("name", StringComparison.OrdinalIgnoreCase) && dto.SortOrder == Constants.Ascending)
+        {
+          queryable = queryable.OrderBy(x => x.name);
+        }
+        else if (dto.OrderBy.Equals("name", StringComparison.OrdinalIgnoreCase) && dto.SortOrder == Constants.Descending)
+        {
+          queryable = queryable.OrderByDescending(x => x.name);
+        }
+        else if (dto.OrderBy.Equals("categoryFullNamePath", StringComparison.OrdinalIgnoreCase) && dto.SortOrder == Constants.Ascending)
+        {
+          queryable = queryable.OrderBy(x => x.categoryFullNamePath);
+        }
+        else if (dto.OrderBy.Equals("categoryFullNamePath", StringComparison.OrdinalIgnoreCase) && dto.SortOrder == Constants.Descending)
+        {
+          queryable = queryable.OrderByDescending(x => x.categoryFullNamePath);
+        }
+        else
+        {
+          queryable = queryable.OrderBy(x => x.categoryFullNamePath);
+        }
+
         // Get list after paging
         queryable = queryable
             .Skip(dto.Skip)
