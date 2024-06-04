@@ -61,7 +61,7 @@
       dto.SortOrder = req.SortByAscending ? Constants.Ascending : Constants.Descending;
       dto.OrderBy = req.SortByColumn?.Title?.Replace(" ", "");
       var res = CategoryService.Search(dto);
-      return GridItemsProviderResult.From(res.Items, res.Count);
+      return GridItemsProviderResult.From(res.Items, res.Metadata.TotalCount);
     };
   }
   Task FilterChangedAsync() => dataGrid!.RefreshDataAsync();

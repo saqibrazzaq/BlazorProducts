@@ -107,7 +107,7 @@ namespace BlazorProducts.Services
             .Take(dto.Take);
         var items = queryable.ToList();
 
-        return new PagedRes<Product> { Items = items, Count = count };
+        return new PagedRes<Product>(items, count, dto.Skip, dto.Take);
       }
       catch (CosmosException) //For handling item not found and other exceptions
       {

@@ -15,6 +15,7 @@ namespace BlazorProducts.Services
     Task DeleteAsync(Category item);
     Task Reset();
     PagedRes<Category> Search(CategorySearchReq dto);
+    List<Category> GetAllRoot();
   }
 
   public class CategoryService : ICategoryService
@@ -56,6 +57,12 @@ namespace BlazorProducts.Services
         return null;
       }
     }
+    public List<Category> GetAllRoot()
+    {
+      IQueryable<Category> queryable = _container.GetItemLinqQueryable<Category>(true);
+      queryable = queryable.Where(x => x.parentId == "");
+      return queryable.ToList();
+    }
     public PagedRes<Category> Search(CategorySearchReq dto)
     {
       try
@@ -72,11 +79,16 @@ namespace BlazorProducts.Services
           queryable = queryable.Where(x => x.id.Equals(dto.Id, StringComparison.OrdinalIgnoreCase));
         }
 
+        if (!string.IsNullOrEmpty(dto.ParentId))
+        {
+          queryable = queryable.Where(x => x.parentId.Equals(dto.ParentId));
+        }
+
         if (!string.IsNullOrEmpty(dto.FullNamePath))
         {
           queryable = queryable.Where(x => x.fullNamePath.Contains(dto.FullNamePath, StringComparison.OrdinalIgnoreCase));
         }
-
+        
         // Count before paging
         var count = queryable.Count();
 
@@ -113,7 +125,7 @@ namespace BlazorProducts.Services
 
         var items = queryable.ToList();
 
-        return new PagedRes<Category> { Items = items, Count = count };
+        return new PagedRes<Category>(items, count, dto.Skip, dto.Take);
       }
       catch (CosmosException ex) //For handling item not found and other exceptions
       {

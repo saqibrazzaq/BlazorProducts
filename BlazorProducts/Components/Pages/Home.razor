@@ -1,7 +1,95 @@
 ﻿@page "/"
+@inject ICategoryService CategoryService
+@inject IProductService ProductService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<p>
+<FluentLabel Typo="Typography.H1">Categories</FluentLabel>
+</p>
 
-Welcome to your new Fluent Blazor app.
+<FluentStack VerticalGap="20">
+  @foreach (var cat in RootCategories)
+  {
+    <FluentCard>
+        <h5>@cat.name</h5>
+    </FluentCard>
+  }
+</FluentStack>
+
+<p>
+<FluentLabel Typo="Typography.H1">Products</FluentLabel>
+</p>
+<FluentStack Wrap="true" VerticalGap="20">
+    @foreach (var p in AllProducts.Items)
+  {
+    <FluentCard Width="200px">
+        <FluentLabel Typo="Typography.Subject">@p.name</FluentLabel>
+        <FluentLabel Typo="Typography.H6">@p.price.ToString("C0")</FluentLabel>
+    </FluentCard>
+  }
+</FluentStack>
+
+<hr />
+
+<FluentStack Orientation="Orientation.Horizontal" Width="100%">
+  <FluentLabel Style="margin-top: 5px;" Typo="Typography.Subject"><strong>@AllProducts.Metadata.TotalCount</strong> Products</FluentLabel>
+  <FluentSpacer />
+  <div style="display: flex; align-items: center; gap: 0px;">
+    <FluentAnchor Href="#" IconStart="@(new Icons.Regular.Size16.ArrowPrevious())" OnClick="GotoFirstPage"></FluentAnchor>
+    <FluentAnchor Href="#" IconStart="@(new Icons.Regular.Size16.ArrowLeft())" OnClick="GotoPreviousPage"></FluentAnchor>
+    <FluentAnchor Href="#">Page @(AllProducts.Metadata.CurrentPage+1) of @AllProducts.Metadata.TotalPages</FluentAnchor>
+    <FluentAnchor Href="#" IconStart="@(new Icons.Regular.Size16.ArrowRight())" OnClick="GotoNextPage"></FluentAnchor>
+    <FluentAnchor Href="#" IconStart="@(new Icons.Regular.Size16.ArrowNext())" OnClick="GotoLastPage"></FluentAnchor>
+  </div>
+</FluentStack>
+
+<br />
+
+@code
+{
+  [Parameter, SupplyParameterFromQuery]
+  public int? Skip { get; set; }
+  [Parameter, SupplyParameterFromQuery]
+  public int? Take { get; set; }
+
+  List<Category> RootCategories = new();
+  PagedRes<Product> AllProducts = new();
+  ProductSearchReq dtoProduct = new();
+  protected override void OnInitialized()
+  {
+    RootCategories = CategoryService.GetAllRoot();
+    SearchProducts();
+  }
+  void SearchProducts()
+  {
+    dtoProduct.Skip = Skip ?? 0;
+    dtoProduct.Take = Take ?? Constants.PageSize;
+    AllProducts = ProductService.Search(dtoProduct);
+    Console.WriteLine("Search products");
+  }
+  void GotoPreviousPage()
+  {
+    Console.WriteLine("Previous page");
+    if (AllProducts.Metadata.HasPrevious)
+      NavigationManager.NavigateTo($"/?Skip={AllProducts.Metadata.CurrentPage - 1}", true);
+  }
+  void GotoNextPage()
+  {
+    Console.WriteLine("Next page");
+    if (AllProducts.Metadata.HasNext)
+      NavigationManager.NavigateTo($"/?Skip={AllProducts.Metadata.CurrentPage+1}", true);
+  }
+  void GotoFirstPage()
+  {
+    if (AllProducts.Metadata.HasPrevious)
+      NavigationManager.NavigateTo($"/?Skip=0", true);
+  }
+  void GotoLastPage()
+  {
+    if (AllProducts.Metadata.HasNext)
+      NavigationManager.NavigateTo($"/?Skip={AllProducts.Metadata.TotalPages - 1}", true);
+  }
+}
